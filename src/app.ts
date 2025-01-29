@@ -7,10 +7,26 @@ import creativesRouter from "./routes/creatives";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+
+
+const PORT = process.env.PORT ;
+// Environment-based settings
+const isProduction = process.env.NODE_ENV === 'production';
+const corsOrigin = isProduction
+  ? process.env.CORS_ORIGIN || "https://bidvertiser-api.vercel.app/api"
+  : "http://localhost:3000"; // Default for localhost development
 
 // Configure CORS
-app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:3000" }));
+const corsOptions = {
+  origin: corsOrigin,
+  methods: ["GET", "POST", "DELETE", "PUT"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
+
+
+// // Configure CORS
+// app.use(cors({ origin: process.env.CORS_ORIGIN || "https://bidvertiser-api.vercel.app" }));
 app.use(express.json());
 
 // Routes
