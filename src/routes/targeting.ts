@@ -31,7 +31,7 @@ router.get('geo/:id', async (req: Request, res: Response) => {
   });
   
 // Route to update geo-targeting data for a specific campaign
-router.put('/api/updateTargeting/:id', async (req: Request, res: Response) => {
+router.put('/updateTargeting/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const { geo } = req.body; // Updated geo data
   
