@@ -38,7 +38,7 @@ app.use(express.json());
 app.use("/api/campaigns", campaignsRouter);
 app.use("/api/creatives", creativesRouter);
 app.use("/api/budget", budgetRouter);
-app.use("/api/target", targetRouter);
+app.use("/api/targeting", targetRouter);
 app.use("/api/alldata", alldataRouter);
 app.use("/api/metrics", metricsRouter);
 // app.use("/api/performance", performanceRouter);
