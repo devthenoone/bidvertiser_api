@@ -8,8 +8,10 @@ const router = Router();
 
 // Fetch all campaigns
 router.get("/", async (req, res) => {
+  console.log("ouchh dont touch me i am parent");
   try {
     const [campaigns] = await db.execute("SELECT * FROM campaigns");
+    console.log("ouchh dont touch me i am parent");
     res.json({ campaigns });
   } catch (error) {
     console.error("Error fetching campaigns:", error);
@@ -165,6 +167,7 @@ router.get('/getCreativeById/:id', async (req: Request, res: Response) => {
 
 /// Route to fetch all data (Campaigns, Bidding, CreativeDetails) in one go
 router.get('/allData', async (req: Request, res: Response) => {
+  console.log('Hay dont touch mee You getting all my data');
   try {
     // Query for campaigns
     const [campaigns] = await db.execute(`

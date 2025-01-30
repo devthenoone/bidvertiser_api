@@ -9,20 +9,18 @@ dotenv.config();
 const app = express();
 
 
-const PORT = process.env.PORT ;
+const PORT = process.env.PORT || 5000;
 // Environment-based settings
-const isProduction = process.env.NODE_ENV === 'production';
-const corsOrigin = isProduction
-  ? process.env.CORS_ORIGIN || "https://bidvertiser-api.vercel.app/api"
-  : "http://localhost:3000"; // Default for localhost development
+// const isProduction = process.env.NODE_ENV === 'production';
+// const corsOrigin = "http://localhost:3000"; // Default for localhost development
 
-// Configure CORS
 const corsOptions = {
-  origin: corsOrigin,
+  origin: ["https://bidvertiser-api.vercel.app", "http://localhost:3000", "https://random-id.ngrok.io"],
   methods: ["GET", "POST", "DELETE", "PUT"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
+;
 
 
 // // Configure CORS
@@ -42,3 +40,5 @@ app.get("/api/health", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
