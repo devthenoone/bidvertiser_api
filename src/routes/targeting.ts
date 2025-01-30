@@ -9,7 +9,7 @@ const router = Router();
 
 
 // Route to fetch geo-targeting data for a specific campaign by ID
-router.get('geo/:id', async (req: Request, res: Response) => {
+router.get('/geo/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
   
     try {
