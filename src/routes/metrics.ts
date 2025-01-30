@@ -1,6 +1,8 @@
 
 import { Router } from "express";
 import db from "../config";
+import { Request, Response } from 'express';
+import { RowDataPacket } from 'mysql2/promise';
 
 
 const router = Router();
@@ -13,7 +15,7 @@ router.get('/', async (req, res) => {
 
 
 // Route to update daily metrics
-router.post('/updateDailyMetrics', async (req, res) => {
+router.post('/updateDailyMetrics', async (req:Request, res:Response) => {
     const { id, date, visitors, bid_requests, cost } = req.body;
   
     const connection = await db.getConnection();
@@ -45,7 +47,7 @@ router.post('/updateDailyMetrics', async (req, res) => {
 
 
   // Route to insert daily metrics
-router.post("/insertDailyMetrics", async (req, res) => {
+router.post("/insertDailyMetrics", async (req:Request, res:Response) => {
     const { id, date, visitors, bid_requests, cost } = req.body;
   
     const connection = await db.getConnection();
