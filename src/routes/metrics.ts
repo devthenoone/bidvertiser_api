@@ -40,7 +40,7 @@ router.post('/updateDailyMetrics', async (req, res) => {
 
 
   // Route to insert daily metrics
-router.post("/api/insertDailyMetrics", async (req, res) => {
+router.post("/insertDailyMetrics", async (req, res) => {
     const { id, date, visitors, bid_requests, cost } = req.body;
   
     const connection = await db.getConnection();

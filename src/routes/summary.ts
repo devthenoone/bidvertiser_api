@@ -10,7 +10,7 @@ const router = Router();
 
 
 //Summary data api is here
-router.get('/api/getData', async (req: Request, res: Response) => {
+router.get('/getData', async (req: Request, res: Response) => {
     try {
       const { startDate, endDate } = req.query;
   
