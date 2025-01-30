@@ -5,7 +5,7 @@ import db from "../config";
 
 const router = Router();
 
-router.post('/', async (req, res) => {
+router.get('/', async (req, res) => {
 
     console.log("hehehhehe i am in");
 
