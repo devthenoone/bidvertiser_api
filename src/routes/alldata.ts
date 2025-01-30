@@ -10,7 +10,7 @@ const router = Router();
 
 
 // Route to fetch campaigns and related data
-router.get("/", async (req, res) => {
+router.get("/", async (req:Request, res:Response) => {
     try {
       const [campaigns] = await db.query("SELECT * FROM campaigns");
       res.status(200).json({ campaigns });
