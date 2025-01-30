@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import campaignsRouter from "./routes/campaigns";
 import creativesRouter from "./routes/creatives";
+import budgetRouter from "./routes/budget";
 
 dotenv.config();
 
@@ -30,6 +31,8 @@ app.use(express.json());
 // Routes
 app.use("/api/campaigns", campaignsRouter);
 app.use("/api/creatives", creativesRouter);
+app.use("/api/budget", budgetRouter);
+
 
 // Health Check
 app.get("/api/health", (req, res) => {

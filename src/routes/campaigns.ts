@@ -202,47 +202,258 @@ router.get('/allData', async (req: Request, res: Response) => {
 
 
 
-// Create a new campaign
-router.post("/save", async (req, res) => {
-  const { campaignName, adFormat, geo, trafficSourceType } = req.body;
+// Route to save campaign data
+router.post('/saveCampaign', async (req: Request, res: Response) => {
+  const {
+    campaignName,
+    adFormat,
+    geo,
+    trafficSourceType,
+    bid,
+    dailyCap,
+    cost,
+    adName,
+    title,
+    description1,
+    description2,
+    displayURL,
+    destinationURL,
+    impressions,
+    clicks,
+    conversions,
+    winRate,
+    videoImp,
+    advancedSettings,
+  } = req.body;
 
+  // Replace empty or undefined fields with null
+  const sanitizedData = {
+    campaignName: adName || null,
+    adFormat: adFormat || null,
+    geo: geo || null,
+    trafficSourceType: trafficSourceType || null,
+    bid: bid || null,
+    dailyCap: dailyCap || null,
+    cost: cost || null,
+    adName: adName || null,
+    title: title || null,
+    description1: description1 || null,
+    description2: description2 || null,
+    displayURL: displayURL || null,
+    destinationURL: destinationURL || null,
+    impressions: impressions || null,
+    clicks: clicks || null,
+    conversions: conversions || null,
+    winRate: winRate || null,
+    videoImp: videoImp || null,
+    advancedSettings: advancedSettings || [],
+  };
+
+  const connection = await db.getConnection();
   try {
-    const [result] = await db.execute<ResultSetHeader>(
-        "INSERT INTO campaigns (campaign_name, ad_format, geo, traffic_source_type) VALUES (?, ?, ?, ?)",
-        [campaignName, adFormat, geo, trafficSourceType]
-      );
-    res.json({ message: "Campaign saved successfully", id: result.insertId });
+    await connection.beginTransaction();
+
+    // Insert into Campaigns table
+    const campaignQuery = `
+        INSERT INTO campaigns (campaign_name, ad_format, geo, traffic_source_type)
+        VALUES (?, ?, ?, ?)
+      `;
+    const [campaignResult] = await connection.execute<mysql.ResultSetHeader>(campaignQuery, [
+      sanitizedData.campaignName,
+      sanitizedData.adFormat,
+      sanitizedData.geo,
+      sanitizedData.trafficSourceType,
+    ]);
+    const campaignId = campaignResult.insertId;
+
+    // Insert into other tables
+    await connection.execute(`
+        INSERT INTO bidding (campaign_id, bid, daily_cap, cost)
+        VALUES (?, ?, ?, ?)
+      `, [campaignId, sanitizedData.bid, sanitizedData.dailyCap, sanitizedData.cost]);
+
+    await connection.execute(`
+        INSERT INTO creativedetails (campaign_id, ad_name, title, description_1, description_2, display_url, destination_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
+      campaignId,
+      sanitizedData.adName,
+      sanitizedData.title,
+      sanitizedData.description1,
+      sanitizedData.description2,
+      sanitizedData.displayURL,
+      sanitizedData.destinationURL,
+    ]);
+
+    await connection.execute(`
+        INSERT INTO performancemetrics (campaign_id, impressions, clicks, conversions, win_rate, video_impressions)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+      campaignId,
+      sanitizedData.impressions,
+      sanitizedData.clicks,
+      sanitizedData.conversions,
+      sanitizedData.winRate,
+      sanitizedData.videoImp,
+    ]);
+
+    // Handle advanced settings
+    if (sanitizedData.advancedSettings.length > 0) {
+      const advancedSettingsQuery = `
+          INSERT INTO advancedsettings (campaign_id, setting_name, setting_value)
+          VALUES (?, ?, ?)
+        `;
+      for (const setting of sanitizedData.advancedSettings) {
+        const settingName = setting.name || null;
+        const settingValue = setting.value || null;
+        await connection.execute(advancedSettingsQuery, [campaignId, settingName, settingValue]);
+      }
+    }
+
+    await connection.commit();
+    res.status(200).json({ message: 'Campaign saved successfully' });
   } catch (error) {
-    console.error("Error saving campaign:", error);
-    res.status(500).json({ message: "Failed to save campaign", error });
+    await connection.rollback();
+    console.error('Error saving campaign:', error);
+    res.status(500).json({ message: 'Failed to save campaign', error });
+  } finally {
+    connection.release();
   }
 });
 
-// Update a campaign
-router.put("/update/:id", async (req, res) => {
-  const { id } = req.params;
-  const { geo } = req.body;
 
+// Route to update campaign data
+router.post('/updateCampaign', async (req: Request, res: Response) => {
+  const {
+    id,
+    geo,
+    impressions,
+    video_impressions,
+    clicks,
+    win_rate
+  } = req.body;
+
+  const connection = await db.getConnection();
   try {
-    await db.execute("UPDATE campaigns SET geo = ? WHERE id = ?", [geo, id]);
-    res.json({ message: "Campaign updated successfully" });
+    await connection.beginTransaction();
+
+    // Update the GEO field in the Campaigns table
+    const updateGeoQuery = `
+      UPDATE campaigns
+      SET geo = ?
+      WHERE id = ?
+    `;
+    await connection.execute(updateGeoQuery, [geo, id]);
+
+    // Update metrics in the performancemetrics table
+    const updateMetricsQuery = `
+      UPDATE performancemetrics
+      SET impressions = ?, video_impressions = ?, clicks = ?, win_rate = ?
+      WHERE campaign_id = ?
+    `;
+    await connection.execute(updateMetricsQuery, [
+      impressions,
+      video_impressions,
+      clicks,
+      win_rate,
+      id,
+    ]);
+
+    await connection.commit();
+    res.status(200).json({ message: 'Campaign updated successfully' });
   } catch (error) {
-    console.error("Error updating campaign:", error);
-    res.status(500).json({ message: "Failed to update campaign", error });
+    await connection.rollback();
+    console.error('Error updating campaign:', error);
+    res.status(500).json({ message: 'Failed to update campaign', error });
+  } finally {
+    connection.release();
   }
 });
 
-// Delete a campaign
-router.delete("/delete/:id", async (req, res) => {
-  const { id } = req.params;
 
+
+
+// Route to delete a campaign by ID
+router.delete('/deleteCampaign/:id', async (req: Request, res: Response) => {
+  const { id } = req.params; // Extract the ID from the route parameter
+
+  const connection = await db.getConnection();
   try {
-    await db.execute("DELETE FROM campaigns WHERE id = ?", [id]);
-    res.json({ message: "Campaign deleted successfully" });
+    await connection.beginTransaction();
+
+    // Check if the campaign exists
+    const [campaignCheck] = await connection.execute(
+      `SELECT id FROM campaigns WHERE id = ?`,
+      [id]
+    );
+
+    if ((campaignCheck as any[]).length === 0) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    // Delete from performancemetrics table
+    await connection.execute(
+      `DELETE FROM performancemetrics WHERE campaign_id = ?`,
+      [id]
+    );
+
+    // Delete from CreativeDetails table
+    await connection.execute(
+      `DELETE FROM creativedetails WHERE campaign_id = ?`,
+      [id]
+    );
+
+    // Delete from Bidding table
+    await connection.execute(
+      `DELETE FROM bidding WHERE campaign_id = ?`,
+      [id]
+    );
+
+    // Delete from AdvancedSettings table (if exists)
+    await connection.execute(
+      `DELETE FROM advancedsettings WHERE campaign_id = ?`,
+      [id]
+    );
+
+    // Finally, delete from Campaigns table
+    await connection.execute(
+      `DELETE FROM campaigns WHERE id = ?`,
+      [id]
+    );
+
+    await connection.commit();
+    res.status(200).json({ message: `Campaign with ID ${id} deleted successfully` });
   } catch (error) {
-    console.error("Error deleting campaign:", error);
-    res.status(500).json({ message: "Failed to delete campaign", error });
+    await connection.rollback();
+    console.error('Error deleting campaign:', error);
+    res.status(500).json({ message: 'Failed to delete campaign', error });
+  } finally {
+    connection.release();
   }
 });
+
+// Route to fetch all campaign names
+router.get('/campaignNames', async (req: Request, res: Response) => {
+  try {
+    const [results] = await db.execute<mysql.RowDataPacket[]>(`
+      SELECT DISTINCT campaign_name
+      FROM campaigns
+    `);
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'No campaigns found' });
+    }
+
+    const campaignNames = results.map((row: any) => row.campaign_name);
+    res.json({ campaignNames });
+  } catch (error) {
+    console.error('Error fetching campaign names:', error);
+    res.status(500).json({ message: 'Failed to fetch campaign names', error });
+  }
+});
+
+
+
+
 
 export default router;

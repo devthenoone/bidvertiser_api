@@ -1,40 +1,71 @@
 import { Router } from "express";
 import db from "../config";
+import express, { Request, Response } from 'express';
+import * as mysql from 'mysql2/promise';
+
+
 
 const router = Router();
 
-// Fetch creative by ID
-router.get("/:id", async (req, res) => {
+
+
+
+//Getting data of Creatuves
+router.get('/getCreativeById/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
+  console.log("Received campaign ID:", id);
+
   try {
-    const [results] = await db.execute(
-      "SELECT * FROM creativedetails WHERE campaign_id = ?",
-      [id]
-    );
-    res.json(results);
+    const [results] = await db.execute<mysql.RowDataPacket[]>(`
+      SELECT c.*, ca.traffic_source_type
+      FROM creativedetails c
+      LEFT JOIN campaigns ca ON c.campaign_id = ca.id
+      WHERE c.campaign_id = ?
+    `, [id]);
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    res.json(results[0]);
   } catch (error) {
-    console.error("Error fetching creative:", error);
-    res.status(500).json({ message: "Failed to fetch creative", error });
+    console.error('Error fetching data by ID:', error);
+    res.status(500).json({ message: 'Failed to fetch data', error });
   }
 });
 
-// Update creative details
-router.put("/update/:id", async (req, res) => {
-  const { id } = req.params;
+
+
+//Updating data of Creatives
+router.put('/updateCreative/:id', async (req: Request, res: Response) => {
+  const { id } = req.params; // Extract id from URL params
   const { adName, title, description1, description2, displayURL, destinationURL } = req.body;
 
+  console.log('Received campaign ID:', id); // Log the ID received
+
   try {
-    await db.execute(
-      `UPDATE creativedetails SET ad_name = ?, title = ?, description_1 = ?, 
-       description_2 = ?, display_url = ?, destination_url = ? WHERE campaign_id = ?`,
-      [adName, title, description1, description2, displayURL, destinationURL, id]
-    );
-    res.json({ message: "Creative updated successfully" });
+    const [result] = await db.execute(`
+      UPDATE creativedetails
+      SET ad_name = ?, title = ?, description_1 = ?, description_2 = ?, 
+          display_url = ?, destination_url = ?
+      WHERE campaign_id = ?
+    `, [adName, title, description1, description2, displayURL, destinationURL, id]);
+
+    if ((result as mysql.ResultSetHeader).affectedRows === 0) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    res.json({ message: 'Record updated successfully' });
   } catch (error) {
-    console.error("Error updating creative:", error);
-    res.status(500).json({ message: "Failed to update creative", error });
+    console.error('Error updating data:', error);
+    res.status(500).json({ message: 'Failed to update data', error });
   }
 });
+
+
+
+
+
 
 export default router;
