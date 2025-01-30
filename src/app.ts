@@ -4,6 +4,12 @@ import dotenv from "dotenv";
 import campaignsRouter from "./routes/campaigns";
 import creativesRouter from "./routes/creatives";
 import budgetRouter from "./routes/budget";
+import targetRouter from "./routes/targeting";
+import alldataRouter from "./routes/alldata";
+import metricsRouter from "./routes/metrics";
+// import performanceRouter from "./routes/performance";
+import summaryRouter from "./routes/summary";
+
 
 dotenv.config();
 
@@ -32,7 +38,11 @@ app.use(express.json());
 app.use("/api/campaigns", campaignsRouter);
 app.use("/api/creatives", creativesRouter);
 app.use("/api/budget", budgetRouter);
-
+app.use("/api/target", targetRouter);
+app.use("/api/alldata", alldataRouter);
+app.use("/api/metrics", metricsRouter);
+// app.use("/api/performance", performanceRouter);
+app.use("/api/summary", summaryRouter);
 
 // Health Check
 app.get("/api/health", (req, res) => {
