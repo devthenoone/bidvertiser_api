@@ -20,22 +20,23 @@ router.get('/getData', async (req: Request, res: Response) => {
   
       // Query the database for campaign, bidding, and performance data
       const [rows] = await db.execute<RowDataPacket[]>(`
-        SELECT 
-          c.id AS campaign_id,
-          c.campaign_name,
-          b.bid,
-          b.daily_cap,
-          b.cost,
-          SUM(p.impressions) AS total_impressions,
-          SUM(p.clicks) AS total_clicks,
-          ROUND(SUM(b.cost) / NULLIF(SUM(p.clicks), 0), 2) AS cpc,
-          c.created_at AS start_date,
-          c.updated_at AS end_date
-        FROM campaigns c
-        LEFT JOIN bidding b ON c.id = b.campaign_id
-        LEFT JOIN performancemetrics p ON c.id = p.campaign_id
-        WHERE c.created_at BETWEEN ? AND ?
-        GROUP BY c.id
+       SELECT 
+  c.id AS campaign_id,
+  c.campaign_name,
+  b.bid,
+  b.daily_cap,
+  b.cost,
+  SUM(p.impressions) AS total_impressions,
+  SUM(p.clicks) AS total_clicks,
+  ROUND(SUM(b.cost) / NULLIF(SUM(p.clicks), 0), 2) AS cpc,
+  c.created_at AS start_date,
+  c.updated_at AS end_date
+FROM campaigns c
+LEFT JOIN bidding b ON c.id = b.campaign_id
+LEFT JOIN performancemetrics p ON c.id = p.campaign_id
+WHERE c.created_at BETWEEN ? AND ?
+GROUP BY c.id, b.bid, b.daily_cap, b.cost
+
       `, [startDate, endDate]);
   
       if (!rows.length) {
