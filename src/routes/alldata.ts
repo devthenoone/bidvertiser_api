@@ -91,7 +91,7 @@ router.get('/allDataCombined', async (req: Request, res: Response) => {
 
     // Query for campaigns, bidding, performance metrics, and daily metrics
     const campaignsQuery = `
-      SELECT c.id AS campaign_id, c.campaign_name, c.ad_format, c.geo, c.traffic_source_type,
+      SELECT c.id AS id, c.campaign_name, c.ad_format, c.geo, c.traffic_source_type,
              b.bid, b.daily_cap, b.cost,
              p.impressions, p.clicks, p.conversions, p.win_rate, p.video_impressions,
              dm.date, dm.visitors, dm.bid_requests, dm.cost AS daily_cost, dm.cpc
@@ -125,7 +125,7 @@ router.get('/allDataCombined', async (req: Request, res: Response) => {
     }
 
     // Return the combined response
-    res.json({ campaigns: campaignsData, creatives: creativesData, dailyMetrics });
+    res.json({ campaign: campaignsData, creatives: creativesData, dailyMetrics });
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ message: 'Failed to fetch data', error });
