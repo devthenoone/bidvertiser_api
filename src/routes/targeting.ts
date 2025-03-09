@@ -103,7 +103,58 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
   });
   
-  
+  // Route to update keywords for a specific campaign
+router.put('/updatingKeywords/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { availableKeywords, selectedKeywords, negativeKeywords } = req.body;
+
+  // Ensure id is valid (non-empty and valid campaign ID)
+  if (!id) {
+    return res.status(400).json({ message: 'Campaign ID is required' });
+  }
+
+  // Prepare the keyword values
+  let safeAvailableKeywords = availableKeywords;
+  let safeSelectedKeywords = selectedKeywords;
+  let safeNegativeKeywords = negativeKeywords;
+
+  // Check and handle potential undefined or invalid data
+  if (safeAvailableKeywords === undefined) {
+    safeAvailableKeywords = null;
+  }
+  if (safeSelectedKeywords === undefined) {
+    safeSelectedKeywords = null;
+  }
+  if (safeNegativeKeywords === undefined) {
+    safeNegativeKeywords = null;
+  }
+
+  try {
+    // Update the keywords for the campaign
+    const [result] = await db.execute(`
+      UPDATE targetingoptions
+      SET 
+        targeting_value = CASE 
+                          WHEN targeting_key = 'availableKeywords' THEN ?
+                          WHEN targeting_key = 'selectedKeywords' THEN ?
+                          WHEN targeting_key = 'negativeKeywords' THEN ?
+                          ELSE targeting_value
+                          END
+      WHERE campaign_id = ?
+      AND targeting_key IN ('availableKeywords', 'selectedKeywords', 'negativeKeywords')
+    `, [safeAvailableKeywords, safeSelectedKeywords, safeNegativeKeywords, id]);
+
+    if ((result as mysql.ResultSetHeader).affectedRows === 0) {
+      return res.status(404).json({ message: 'No changes made or campaign not found' });
+    }
+
+    res.json({ message: 'Keywords updated successfully' });
+  } catch (error) {
+    console.error('Error updating keywords:', error);
+    res.status(500).json({ message: 'Failed to update keywords', error });
+  }
+});
+
 
 
   export default router;

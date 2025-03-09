@@ -1,10 +1,39 @@
 import { Router } from "express";
 import db from "../config";
-import { ResultSetHeader } from "mysql2"; // Import this at the top
-import express, { Request, Response } from 'express';
 import * as mysql from 'mysql2/promise';
-
+import multer from 'multer';
+import express, { Request, Response } from 'express';
+import path from 'path';
 const router = Router();
+import fs from 'fs';
+
+
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "src/upload/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage });
+
+router.post("/upload", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
+  const filePath = `/upload/${req.file.filename}`;
+  res.json({ filePath });
+});
+
+
+
+
+
+
 
 // Fetch all campaigns
 router.get("/", async (req, res) => {
@@ -203,7 +232,11 @@ router.get('/allData', async (req: Request, res: Response) => {
 
 
 // Route to save campaign data
-router.post('/saveCampaign', async (req: Request, res: Response) => {
+router.post('/saveCampaign', upload.single("image"), async (req: Request, res: Response) => {
+  console.log("Uploaded File:", req.file);
+  console.log("Request Body:", req.body);
+
+  // Extracting campaign details from the request body
   const {
     campaignName,
     adFormat,
@@ -224,11 +257,14 @@ router.post('/saveCampaign', async (req: Request, res: Response) => {
     winRate,
     videoImp,
     advancedSettings,
+    imglocation,
+    image
   } = req.body;
+
 
   // Replace empty or undefined fields with null
   const sanitizedData = {
-    campaignName: adName || null,
+    campaignName: adName,
     adFormat: adFormat || null,
     geo: geo || null,
     trafficSourceType: trafficSourceType || null,
@@ -246,7 +282,9 @@ router.post('/saveCampaign', async (req: Request, res: Response) => {
     conversions: conversions || null,
     winRate: winRate || null,
     videoImp: videoImp || null,
-    advancedSettings: advancedSettings || [],
+    advancedSettings: Array.isArray(advancedSettings) ? advancedSettings : [],
+    imgLocation: imglocation || null,  // Updated to use uploaded image path
+    image: image || null
   };
 
   const connection = await db.getConnection();
@@ -257,61 +295,74 @@ router.post('/saveCampaign', async (req: Request, res: Response) => {
     const campaignQuery = `
         INSERT INTO campaigns (campaign_name, ad_format, geo, traffic_source_type)
         VALUES (?, ?, ?, ?)
-      `;
+    `;
     const [campaignResult] = await connection.execute<mysql.ResultSetHeader>(campaignQuery, [
-      sanitizedData.campaignName,
+      sanitizedData.adName,
       sanitizedData.adFormat,
       sanitizedData.geo,
       sanitizedData.trafficSourceType,
     ]);
     const campaignId = campaignResult.insertId;
 
-    // Insert into other tables
-    await connection.execute(`
-        INSERT INTO bidding (campaign_id, bid, daily_cap, cost)
-        VALUES (?, ?, ?, ?)
-      `, [campaignId, sanitizedData.bid, sanitizedData.dailyCap, sanitizedData.cost]);
+    // Insert into bidding table
+    await connection.execute(
+      `INSERT INTO bidding (campaign_id, bid, daily_cap, cost) VALUES (?, ?, ?, ?)`,
+      [campaignId, sanitizedData.bid, sanitizedData.dailyCap, sanitizedData.cost]
+    );
 
-    await connection.execute(`
-        INSERT INTO creativedetails (campaign_id, ad_name, title, description_1, description_2, display_url, destination_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [
-      campaignId,
-      sanitizedData.adName,
-      sanitizedData.title,
-      sanitizedData.description1,
-      sanitizedData.description2,
-      sanitizedData.displayURL,
-      sanitizedData.destinationURL,
-    ]);
+    // Insert into creativedetails table
+    await connection.execute(
+      `INSERT INTO creativedetails (campaign_id, ad_name, title, description_1, description_2, display_url, destination_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
 
-    await connection.execute(`
-        INSERT INTO performancemetrics (campaign_id, impressions, clicks, conversions, win_rate, video_impressions)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [
-      campaignId,
-      sanitizedData.impressions,
-      sanitizedData.clicks,
-      sanitizedData.conversions,
-      sanitizedData.winRate,
-      sanitizedData.videoImp,
-    ]);
+      [
+        campaignId,
+        sanitizedData.adName,
+        sanitizedData.title,
+        sanitizedData.description1,
+        sanitizedData.description2,
+        sanitizedData.displayURL,
+        sanitizedData.destinationURL,
+      ]
+    );
 
-    // Handle advanced settings
-    if (sanitizedData.advancedSettings.length > 0) {
+    // Insert into performancemetrics table
+    await connection.execute(
+      `INSERT INTO performancemetrics (campaign_id, impressions, clicks, conversions, win_rate, video_impressions)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+
+      [
+        campaignId,
+        sanitizedData.impressions,
+        sanitizedData.clicks,
+        sanitizedData.conversions,
+        sanitizedData.winRate,
+        sanitizedData.videoImp,
+      ]
+    );
+
+
+      await connection.execute(
+        `INSERT INTO campaign_images (img_location, campaign_id) VALUES (?, ?)`,
+        [sanitizedData.image, campaignId]
+      );
+  
+
+
       const advancedSettingsQuery = `
           INSERT INTO advancedsettings (campaign_id, setting_name, setting_value)
           VALUES (?, ?, ?)
-        `;
+      `;
       for (const setting of sanitizedData.advancedSettings) {
         const settingName = setting.name || null;
         const settingValue = setting.value || null;
         await connection.execute(advancedSettingsQuery, [campaignId, settingName, settingValue]);
       }
-    }
+    
 
     await connection.commit();
-    res.status(200).json({ message: 'Campaign saved successfully' });
+    res.status(200).json({ message: 'Campaign saved successfully', imgPath: sanitizedData.image });
+
   } catch (error) {
     await connection.rollback();
     console.error('Error saving campaign:', error);

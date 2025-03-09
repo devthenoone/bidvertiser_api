@@ -9,6 +9,8 @@ import alldataRouter from "./routes/alldata";
 import metricsRouter from "./routes/metrics";
 // import performanceRouter from "./routes/performance";
 import summaryRouter from "./routes/summary";
+import campaignimgRouter from "./routes/campaignimg";
+import path from 'path';
 
 
 dotenv.config();
@@ -34,6 +36,8 @@ app.use(cors(corsOptions));
 // app.use(cors({ origin: process.env.CORS_ORIGIN || "https://bidvertiser-api.vercel.app" }));
 app.use(express.json());
 
+app.use("/upload", express.static(path.join(__dirname, "upload")));
+
 // Routes
 app.use("/api/campaigns", campaignsRouter);
 app.use("/api/creatives", creativesRouter);
@@ -43,6 +47,8 @@ app.use("/api/alldata", alldataRouter);
 app.use("/api/metrics", metricsRouter);
 // app.use("/api/performance", performanceRouter);
 app.use("/api/summary", summaryRouter);
+app.use("/api/campaignimg", campaignimgRouter);
+
 
 // Health Check
 app.get("/api/health", (req, res) => {

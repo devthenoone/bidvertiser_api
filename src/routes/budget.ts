@@ -33,7 +33,7 @@ router.get('/getBudgetById/:id', async (req: Request, res: Response) => {
 
   
 // Route to update the budget (similar to updateCreative)
-router.put('/api/updateBudget/:id', async (req: Request, res: Response) => {
+router.put('/updateBudget/:id', async (req: Request, res: Response) => {
     const { id } = req.params; // Extract id from URL params
     const { cost, noDailyLimit } = req.body; // Extract updated values
   

@@ -10,7 +10,7 @@ const router = Router();
 
 
 
-//Getting data of Creatuves
+// Getting data of Creatives along with Image Location
 router.get('/getCreativeById/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -18,9 +18,13 @@ router.get('/getCreativeById/:id', async (req: Request, res: Response) => {
 
   try {
     const [results] = await db.execute<mysql.RowDataPacket[]>(`
-      SELECT c.*, ca.traffic_source_type
+      SELECT 
+        c.*, 
+        ca.traffic_source_type,
+        ci.img_location
       FROM creativedetails c
       LEFT JOIN campaigns ca ON c.campaign_id = ca.id
+      LEFT JOIN campaign_images ci ON c.campaign_id = ci.campaign_id
       WHERE c.campaign_id = ?
     `, [id]);
 
@@ -28,12 +32,13 @@ router.get('/getCreativeById/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Record not found' });
     }
 
-    res.json(results[0]);
+    res.json(results[0]); // Returns all data including img_location
   } catch (error) {
     console.error('Error fetching data by ID:', error);
     res.status(500).json({ message: 'Failed to fetch data', error });
   }
 });
+
 
 
 
