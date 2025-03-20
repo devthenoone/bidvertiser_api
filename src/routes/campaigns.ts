@@ -6,29 +6,67 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 const router = Router();
 import fs from 'fs';
+import { put } from "@vercel/blob";
+
+import dotenv from "dotenv";
+dotenv.config();
+
+const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+
+if (!blobToken) {
+  throw new Error("BLOB_READ_WRITE_TOKEN is missing from environment variables!");
+}
+
+// Use blobToken in your upload logic...
+
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "src/upload/");
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, `${Date.now()}-${file.originalname}`);
+//   },
+// });
+
+// const upload = multer({ storage });
+
+// router.post("/upload", upload.single("file"), (req, res) => {
+//   if (!req.file) {
+//     return res.status(400).json({ message: "No file uploaded" });
+//   }
+
+//   const filePath = `/upload/${req.file.filename}`;
+//   res.json({ filePath });
+// });
 
 
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "src/upload/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-
+// Multer setup (stores file in memory as buffer)
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-router.post("/upload", upload.single("file"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
+router.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const fileName = `${Date.now()}-${req.file.originalname}`;
+    const { url } = await put(fileName, req.file.buffer, {
+      access: "public",
+      contentType: req.file.mimetype,
+    });
+
+    res.json({ fileUrl: url });
+  } catch (error) {
+    console.error("Upload Error:", error);
+
+    // ✅ Fix: Cast 'error' to 'Error' before accessing 'message'
+    const err = error as Error;
+
+    res.status(500).json({ message: "Failed to upload file", error: err.message });
   }
-
-  const filePath = `/upload/${req.file.filename}`;
-  res.json({ filePath });
 });
-
 
 
 
@@ -257,8 +295,8 @@ router.post('/saveCampaign', upload.single("image"), async (req: Request, res: R
     winRate,
     videoImp,
     advancedSettings,
-    imglocation,
-    image
+    imgLocation,
+        image
   } = req.body;
 
 
@@ -283,7 +321,7 @@ router.post('/saveCampaign', upload.single("image"), async (req: Request, res: R
     winRate: winRate || null,
     videoImp: videoImp || null,
     advancedSettings: Array.isArray(advancedSettings) ? advancedSettings : [],
-    imgLocation: imglocation || null,  // Updated to use uploaded image path
+    imgLocation: imgLocation || null,  // Updated to use uploaded image path
     image: image || null
   };
 
@@ -342,10 +380,10 @@ router.post('/saveCampaign', upload.single("image"), async (req: Request, res: R
     );
 
 
-      await connection.execute(
-        `INSERT INTO campaign_images (img_location, campaign_id) VALUES (?, ?)`,
-        [sanitizedData.image, campaignId]
-      );
+    await connection.execute(
+      `INSERT INTO campaign_images (img_location, campaign_id) VALUES (?, ?)`,
+      [sanitizedData.imgLocation, campaignId]
+    );
   
 
 
