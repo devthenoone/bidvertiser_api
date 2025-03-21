@@ -62,12 +62,25 @@ router.put('/updateCreative/:id', async (req: Request, res: Response) => {
       throw new Error('Record not found');
     }
 
-    // Update or insert image location in campaign_images
-    await connection.execute(`
-      INSERT INTO campaign_images (campaign_id, img_location) 
-      VALUES (?, ?)
-      ON DUPLICATE KEY UPDATE img_location = VALUES(img_location)
-    `, [id, imgLocation]);
+    // Check if an image already exists for this campaign
+    const [existingImage] = await connection.execute(
+      `SELECT img_location FROM campaign_images WHERE campaign_id = ?`, [id]
+    ) as any[];
+
+    if (existingImage.length > 0) {
+      // Update the existing image (replace img_location with new URL or BLOB data)
+      await connection.execute(`
+        UPDATE campaign_images 
+        SET img_location = ?
+        WHERE campaign_id = ?
+      `, [imgLocation, id]);
+    } else {
+      // Insert new image if none exists
+      await connection.execute(`
+        INSERT INTO campaign_images (campaign_id, img_location) 
+        VALUES (?, ?)
+      `, [id, imgLocation]);
+    }
 
     await connection.commit(); // Commit transaction
 
@@ -80,7 +93,6 @@ router.put('/updateCreative/:id', async (req: Request, res: Response) => {
     connection.release(); // Release connection
   }
 });
-
 
 
 
