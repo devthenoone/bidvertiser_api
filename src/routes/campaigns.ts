@@ -308,7 +308,7 @@ router.post('/saveCampaign', upload.single("image"), async (req: Request, res: R
     trafficSourceType: trafficSourceType || null,
     bid: bid || null,
     dailyCap: cost || null,
-    cost: dailyCap || null,
+    cost: 0 || null,
     adName: adName || null,
     title: title || null,
     description1: description1 || null,
