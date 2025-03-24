@@ -24,7 +24,7 @@ const PORT = process.env.PORT || 5000;
 // const corsOrigin = "http://localhost:3000"; // Default for localhost development
 
 const corsOptions = {
-  origin: ["https://bidvertiserdemo.vercel.app", "http://localhost:3000"],
+  origin: ["https://www.mybidvertizer.com/", "http://localhost:3000"],
   methods: ["GET", "POST", "DELETE", "PUT"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
